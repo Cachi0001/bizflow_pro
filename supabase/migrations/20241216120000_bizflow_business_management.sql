@@ -1,13 +1,13 @@
 -- BizFlow Pro Business Management System
--- Complete database schema for business financial management
+-- Complete database schema for business financial management (Fresh Project, June 27, 2025)
 
 -- 1. Types and Enums
-CREATE TYPE public.user_role AS ENUM ('admin', 'manager', 'member');
+CREATE TYPE public.user_role AS ENUM ('Owner', 'Salesperson', 'Admin');
 CREATE TYPE public.transaction_type AS ENUM ('invoice', 'expense', 'payment');
 CREATE TYPE public.invoice_status AS ENUM ('draft', 'sent', 'paid', 'overdue', 'cancelled');
 CREATE TYPE public.expense_category AS ENUM ('office', 'utilities', 'marketing', 'travel', 'equipment', 'software', 'other');
 CREATE TYPE public.payment_method AS ENUM ('bank_transfer', 'cash', 'card', 'paystack', 'stripe');
-CREATE TYPE public.subscription_tier AS ENUM ('free', 'premium', 'enterprise');
+CREATE TYPE public.subscription_tier AS ENUM ('Free', 'Silver', 'Gold');
 
 -- 2. User Profiles (Critical intermediary table)
 CREATE TABLE public.user_profiles (
@@ -16,11 +16,12 @@ CREATE TABLE public.user_profiles (
     full_name TEXT NOT NULL,
     business_name TEXT,
     phone TEXT,
-    role public.user_role DEFAULT 'member'::public.user_role,
-    subscription_tier public.subscription_tier DEFAULT 'free'::public.subscription_tier,
+    role public.user_role DEFAULT 'Owner'::public.user_role,
+    subscription_tier public.subscription_tier DEFAULT 'Free'::public.subscription_tier,
     subscription_expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
 );
 
 -- 3. Business Core Tables
@@ -32,7 +33,8 @@ CREATE TABLE public.clients (
     phone TEXT,
     address TEXT,
     business_type TEXT,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE public.invoices (
@@ -46,7 +48,8 @@ CREATE TABLE public.invoices (
     status public.invoice_status DEFAULT 'draft'::public.invoice_status,
     due_date DATE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    paid_at TIMESTAMPTZ
+    paid_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE public.expenses (
@@ -57,7 +60,8 @@ CREATE TABLE public.expenses (
     amount DECIMAL(15,2) NOT NULL,
     category public.expense_category DEFAULT 'other'::public.expense_category,
     receipt_url TEXT,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE public.payments (
@@ -68,7 +72,8 @@ CREATE TABLE public.payments (
     payment_method public.payment_method DEFAULT 'bank_transfer'::public.payment_method,
     reference_number TEXT,
     notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE public.transactions (
@@ -78,7 +83,19 @@ CREATE TABLE public.transactions (
     reference_id UUID, -- Can reference invoices, expenses, or payments
     description TEXT NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE public.referrals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    referrer_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    referred_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    reward_type TEXT CHECK (reward_type IN ('invoice', 'discount')),
+    status TEXT CHECK (status IN ('Pending', 'Claimed')),
+    created_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+    updated_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+    deleted_at TIMESTAMPTZ
 );
 
 -- 4. Essential Indexes
@@ -91,6 +108,8 @@ CREATE INDEX idx_expenses_user_id ON public.expenses(user_id);
 CREATE INDEX idx_payments_user_id ON public.payments(user_id);
 CREATE INDEX idx_transactions_user_id ON public.transactions(user_id);
 CREATE INDEX idx_transactions_type ON public.transactions(type);
+CREATE INDEX idx_referrals_referrer_id ON public.referrals(referrer_id);
+CREATE INDEX idx_referrals_referred_id ON public.referrals(referred_id);
 
 -- 5. RLS Setup
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -99,6 +118,7 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 
 -- 6. Helper Functions for RLS
 CREATE OR REPLACE FUNCTION public.is_owner(user_uuid UUID)
@@ -141,6 +161,9 @@ USING (public.is_owner(user_id)) WITH CHECK (public.is_owner(user_id));
 CREATE POLICY "users_manage_own_transactions" ON public.transactions FOR ALL
 USING (public.is_owner(user_id)) WITH CHECK (public.is_owner(user_id));
 
+CREATE POLICY "users_manage_own_referrals" ON public.referrals FOR ALL
+USING (public.is_owner(referrer_id)) WITH CHECK (public.is_owner(referrer_id));
+
 -- 8. Trigger for automatic profile creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -153,7 +176,7 @@ BEGIN
     NEW.id, 
     NEW.email, 
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'member')::public.user_role
+    COALESCE(NEW.raw_user_meta_data->>'role', 'Owner')::public.user_role
   );
   RETURN NEW;
 END;
@@ -174,6 +197,7 @@ SELECT COALESCE(SUM(i.amount), 0)
 FROM public.invoices i
 WHERE i.user_id = user_uuid 
 AND i.status = 'paid'::public.invoice_status AND DATE_TRUNC('month', i.paid_at) = DATE_TRUNC('month', target_month)
+AND i.deleted_at IS NULL
 $$;
 
 CREATE OR REPLACE FUNCTION public.get_monthly_expenses(user_uuid UUID, target_month DATE DEFAULT CURRENT_DATE)
@@ -186,63 +210,6 @@ SELECT COALESCE(SUM(e.amount), 0)
 FROM public.expenses e
 WHERE e.user_id = user_uuid 
 AND DATE_TRUNC('month', e.created_at) = DATE_TRUNC('month', target_month)
+AND e.deleted_at IS NULL
 $$;
 
--- 10. Mock Data
-DO $$
-DECLARE
-    admin_uuid UUID := gen_random_uuid();
-    user_uuid UUID := gen_random_uuid();
-    client1_uuid UUID := gen_random_uuid();
-    client2_uuid UUID := gen_random_uuid();
-    invoice1_uuid UUID := gen_random_uuid();
-    invoice2_uuid UUID := gen_random_uuid();
-BEGIN
-    -- Create auth users with required fields
-    INSERT INTO auth.users (
-        id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-        created_at, updated_at, raw_user_meta_data, raw_app_meta_data,
-        is_sso_user, is_anonymous, confirmation_token, confirmation_sent_at,
-        recovery_token, recovery_sent_at, email_change_token_new, email_change,
-        email_change_sent_at, email_change_token_current, email_change_confirm_status,
-        reauthentication_token, reauthentication_sent_at, phone, phone_change,
-        phone_change_token, phone_change_sent_at
-    ) VALUES
-        (admin_uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-         'admin@bizflow.com', crypt('password123', gen_salt('bf', 10)), now(), now(), now(),
-         '{"full_name": "John Adebayo", "role": "admin"}'::jsonb, '{"provider": "email", "providers": ["email"]}'::jsonb,
-         false, false, '', null, '', null, '', '', null, '', 0, '', null, null, '', '', null),
-        (user_uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-         'user@bizflow.com', crypt('password123', gen_salt('bf', 10)), now(), now(), now(),
-         '{"full_name": "Kemi Okonkwo", "role": "member"}'::jsonb, '{"provider": "email", "providers": ["email"]}'::jsonb,
-         false, false, '', null, '', null, '', '', null, '', 0, '', null, null, '', '', null);
-
-    -- Create clients
-    INSERT INTO public.clients (id, user_id, name, email, phone, business_type) VALUES
-        (client1_uuid, admin_uuid, 'Adebayo Enterprises', 'contact@adebayoenterprises.com', '+234-800-1234-567', 'Technology'),
-        (client2_uuid, admin_uuid, 'Kemi Fashion Store', 'orders@kemifashion.com', '+234-800-2345-678', 'Retail');
-
-    -- Create invoices
-    INSERT INTO public.invoices (id, user_id, client_id, invoice_number, title, amount, status, due_date, paid_at) VALUES
-        (invoice1_uuid, admin_uuid, client1_uuid, 'INV-2024-001', 'Website Development', 450000.00, 'paid'::public.invoice_status, '2024-12-30', '2024-12-15 10:30:00'),
-        (invoice2_uuid, admin_uuid, client2_uuid, 'INV-2024-002', 'E-commerce Platform', 280000.00, 'paid'::public.invoice_status, '2024-12-25', '2024-12-13 14:20:00');
-
-    -- Create expenses
-    INSERT INTO public.expenses (user_id, title, amount, category) VALUES
-        (admin_uuid, 'Office Rent - December', 120000.00, 'office'::public.expense_category),
-        (admin_uuid, 'Internet & Phone Bills', 25000.00, 'utilities'::public.expense_category),
-        (admin_uuid, 'Adobe Creative Suite', 15000.00, 'software'::public.expense_category);
-
-    -- Create payments
-    INSERT INTO public.payments (user_id, invoice_id, amount, payment_method, reference_number) VALUES
-        (admin_uuid, invoice1_uuid, 450000.00, 'bank_transfer'::public.payment_method, 'TXN-450K-2024-001'),
-        (admin_uuid, invoice2_uuid, 280000.00, 'paystack'::public.payment_method, 'PSK-280K-2024-002');
-
-    -- Create transaction records
-    INSERT INTO public.transactions (user_id, type, reference_id, description, amount) VALUES
-        (admin_uuid, 'invoice'::public.transaction_type, invoice1_uuid, 'Website Development - Adebayo Enterprises', 450000.00),
-        (admin_uuid, 'invoice'::public.transaction_type, invoice2_uuid, 'E-commerce Platform - Kemi Fashion Store', 280000.00),
-        (admin_uuid, 'expense'::public.transaction_type, null, 'Office Rent - December', -120000.00),
-        (admin_uuid, 'expense'::public.transaction_type, null, 'Internet & Phone Bills', -25000.00);
-
-END $$;
