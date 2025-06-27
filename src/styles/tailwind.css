@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary Colors */
+    --color-primary: #1B5E20; /* deep forest green */
+    --color-primary-50: #E8F5E8; /* light green tint */
+    --color-primary-100: #C8E6C9; /* green-100 */
+    --color-primary-200: #A5D6A7; /* green-200 */
+    --color-primary-300: #81C784; /* green-300 */
+    --color-primary-400: #66BB6A; /* green-400 */
+    --color-primary-500: #4CAF50; /* green-500 */
+    --color-primary-600: #43A047; /* green-600 */
+    --color-primary-700: #388E3C; /* green-700 */
+    --color-primary-800: #2E7D32; /* green-800 */
+    --color-primary-900: #1B5E20; /* green-900 */
+    --color-primary-foreground: #FFFFFF; /* white */
+
+    /* Secondary Colors */
+    --color-secondary: #4CAF50; /* green-500 */
+    --color-secondary-50: #E8F5E8; /* light green tint */
+    --color-secondary-100: #C8E6C9; /* green-100 */
+    --color-secondary-200: #A5D6A7; /* green-200 */
+    --color-secondary-300: #81C784; /* green-300 */
+    --color-secondary-400: #66BB6A; /* green-400 */
+    --color-secondary-500: #4CAF50; /* green-500 */
+    --color-secondary-600: #43A047; /* green-600 */
+    --color-secondary-700: #388E3C; /* green-700 */
+    --color-secondary-800: #2E7D32; /* green-800 */
+    --color-secondary-900: #1B5E20; /* green-900 */
+    --color-secondary-foreground: #FFFFFF; /* white */
+
+    /* Accent Colors */
+    --color-accent: #FF9800; /* orange-500 */
+    --color-accent-50: #FFF3E0; /* orange-50 */
+    --color-accent-100: #FFE0B2; /* orange-100 */
+    --color-accent-200: #FFCC80; /* orange-200 */
+    --color-accent-300: #FFB74D; /* orange-300 */
+    --color-accent-400: #FFA726; /* orange-400 */
+    --color-accent-500: #FF9800; /* orange-500 */
+    --color-accent-600: #FB8C00; /* orange-600 */
+    --color-accent-700: #F57C00; /* orange-700 */
+    --color-accent-800: #EF6C00; /* orange-800 */
+    --color-accent-900: #E65100; /* orange-900 */
+    --color-accent-foreground: #FFFFFF; /* white */
+
+    /* Background Colors */
+    --color-background: #FAFAFA; /* gray-50 */
+    --color-background-secondary: #F5F5F5; /* gray-100 */
+    --color-surface: #FFFFFF; /* white */
+    --color-surface-secondary: #F9F9F9; /* gray-25 */
+
+    /* Text Colors */
+    --color-text-primary: #212121; /* gray-800 */
+    --color-text-secondary: #757575; /* gray-500 */
+    --color-text-tertiary: #9E9E9E; /* gray-400 */
+    --color-text-disabled: #BDBDBD; /* gray-300 */
+
+    /* Status Colors */
+    --color-success: #2E7D32; /* green-800 */
+    --color-success-50: #E8F5E8; /* light green tint */
+    --color-success-100: #C8E6C9; /* green-100 */
+    --color-success-500: #4CAF50; /* green-500 */
+    --color-success-foreground: #FFFFFF; /* white */
+
+    --color-warning: #F57C00; /* orange-700 */
+    --color-warning-50: #FFF8E1; /* amber-50 */
+    --color-warning-100: #FFECB3; /* amber-100 */
+    --color-warning-500: #FFC107; /* amber-500 */
+    --color-warning-foreground: #FFFFFF; /* white */
+
+    --color-error: #C62828; /* red-700 */
+    --color-error-50: #FFEBEE; /* red-50 */
+    --color-error-100: #FFCDD2; /* red-100 */
+    --color-error-500: #F44336; /* red-500 */
+    --color-error-foreground: #FFFFFF; /* white */
+
+    --color-info: #1976D2; /* blue-700 */
+    --color-info-50: #E3F2FD; /* blue-50 */
+    --color-info-100: #BBDEFB; /* blue-100 */
+    --color-info-500: #2196F3; /* blue-500 */
+    --color-info-foreground: #FFFFFF; /* white */
+
+    /* Border Colors */
+    --color-border: rgba(0, 0, 0, 0.12); /* subtle border */
+    --color-border-secondary: rgba(0, 0, 0, 0.08); /* lighter border */
+    --color-border-focus: #4CAF50; /* green-500 */
+
+    /* Shadow Colors */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+    --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+
+    /* Animation Variables */
+    --transition-fast: 150ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    --transition-normal: 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-sans;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  }
+
+  /* Typography Base Styles */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--color-text-primary);
+  }
+
+  .font-data {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  /* Focus Styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
+  }
+
+  /* Reduced Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Card Components */
+  .card {
+    @apply bg-surface rounded-lg shadow-md border border-border;
+  }
+
+  .card-elevated {
+    @apply bg-surface rounded-lg shadow-lg border border-border;
+  }
+
+  /* Button Hover Effects */
+  .btn-hover-scale {
+    @apply transition-transform duration-150 ease-out;
+  }
+
+  .btn-hover-scale:hover {
+    @apply scale-102;
+  }
+
+  /* Loading States */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  .pulse-glow {
+    @apply animate-pulse;
+    box-shadow: 0 0 0 1px var(--color-primary-200);
+  }
+
+  /* Status Indicators */
+  .status-indicator {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+  }
+.status-success  {
+    @apply bg-success-100;
+  }
+.status-warning  {
+    @apply bg-warning-100;
+  }
+.status-error  {
+    @apply bg-error-100;
+  }
+
+  /* Navigation Styles */
+  .nav-item {
+    @apply flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200;
+  }
+
+  .nav-item:hover {
+    @apply bg-primary-50 text-primary-700;
+  }
+
+  .nav-item.active {
+    @apply bg-primary-100 text-primary-800 font-semibold;
+  }
+
+  /* Form Styles */
+  .form-group {
+    @apply space-y-2;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-text-primary;
+  }
+.form-error  {
+    @apply text-sm mt-1;
+  }
+
+  .form-help {
+    @apply text-sm text-text-secondary mt-1;
+  }
+}
+
+@layer utilities {
+  /* Custom Spacing */
+  .space-y-grid {
+    @apply space-y-4;
+  }
+
+  .space-x-grid {
+    @apply space-x-4;
+  }
+
+  /* Touch Targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Scrollbar Styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 3px;
+  }
+
+  /* Animation Utilities */
+  .animate-fade-in {
+    animation: fadeIn 200ms ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 300ms ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 300ms ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  /* Scale Transform */
+  .scale-102 {
+    transform: scale(1.02);
+  }
+}
